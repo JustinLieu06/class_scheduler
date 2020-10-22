@@ -3,8 +3,8 @@
 class UsersController < ApplicationController
   include AvailabilitiesSorter
   
-  before_action :authenticate_user!, except: :cities
-  before_action :permitted_params, except: :cities
+  before_action :authenticate_user!, except: [:cities, :counts]
+  before_action :permitted_params, except: [:cities, :counts]
 
   def show
     redirect_to root_path && return unless current_user
@@ -38,6 +38,11 @@ class UsersController < ApplicationController
   def cities
     cities = User.cities
     render json: { cities: cities }, status: :ok
+  end
+
+  def counts
+    counts = User.active_user_counts
+    render json: { counts: counts }, status: :ok
   end
 
   private

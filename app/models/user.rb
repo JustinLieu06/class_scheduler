@@ -114,6 +114,10 @@ class User < ActiveRecord::Base
     if client?
       UserMailer.account_reactivated(self).deliver_later
     else
+      if self.availabilities && !self.availabilities.first
+        availability_job = AvailabilityJob.new(self)
+        Delayed::Job.enqueue(availability_job, 0, 3.days.from_now)
+      end
       UserMailer.account_activated(self).deliver_later
     end
   end
@@ -165,6 +169,14 @@ class User < ActiveRecord::Base
     known_cities
   end
 
+  def self.active_user_counts
+    active_users = {
+      client_count: total_client_count,
+      volunteer_count: total_volunteer_count,
+      all_count: total_user_count,
+    }
+  end 
+
   private
 
   def self.city_client_count(city, state)
@@ -177,6 +189,23 @@ class User < ActiveRecord::Base
     User.select('roles.name')
         .where(active: true, city: city, state: state)
         .joins(:roles).where("roles.name = 'Volunteer'").count
+  end
+
+  def self.total_client_count
+    User.select('roles.name')
+      .where(active:true)
+      .joins(:roles).where("roles.name = 'Client'").count
+  end
+  
+  def self.total_volunteer_count
+    User.select('roles.name')
+      .where(active:true)
+      .joins(:roles).where("roles.name = 'Volunteer'").count
+  end
+  
+  def self.total_user_count
+    User.where(active:true)
+    .joins(:roles).where("roles.name = 'Client' OR roles.name = 'Volunteer'").count
   end
 
   def self.city_coordinates(city, state)
